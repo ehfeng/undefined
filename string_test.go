@@ -16,6 +16,22 @@ type stringInStruct struct {
 	Y string `json:"y,omitempty"`
 }
 
+func (s *stringInStruct) Omit() omitStringInStruct {
+	var ptr *String
+	if s.X.Defined {
+		ptr = &s.X
+	}
+	return omitStringInStruct{
+		X: ptr,
+		Y: s.Y,
+	}
+}
+
+type omitStringInStruct struct {
+	X *String `json:"x,omitempty"`
+	Y string  `json:"y,omitempty"`
+}
+
 func TestUnmarshalStringField(t *testing.T) {
 	var err error
 	var s1 stringInStruct
@@ -83,21 +99,22 @@ func TestMarshal(t *testing.T) {
 
 	s3 := stringInStruct{
 		X: NewString("", false),
+		Y: "hi",
 	}
 	b3, err := json.Marshal(s3)
 	if err != nil {
 		t.Error(err)
 	}
-	if string(b3) != `{"x":null}` {
+	if string(b3) != `{"x":null,"y":"hi"}` {
 		t.Errorf("Expected marshaled JSON to be `{\"x\":null}` but got `%s`", string(b3))
 	}
 
 	s4 := stringInStruct{Y: "hello"}
-	b4, err := json.Marshal(s4)
+	b4, err := json.Marshal(s4.Omit())
 	if err != nil {
 		t.Error(err)
 	}
 	if string(b4) != `{"y":"hello"}` {
-		t.Errorf("Expected marshaled JSON to be `{}` but got `%s`", string(b4))
+		t.Errorf("Expected marshaled JSON to be `{\"y\": \"hello\"}` but got `%s`", string(b4))
 	}
 }
