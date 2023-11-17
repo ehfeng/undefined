@@ -16,20 +16,19 @@ type stringInStruct struct {
 	Y string `json:"y,omitempty"`
 }
 
-func (s *stringInStruct) Omit() omitStringInStruct {
+func (s stringInStruct) MarshalJSON() ([]byte, error) {
 	var ptr *String
 	if s.X.Defined {
 		ptr = &s.X
 	}
-	return omitStringInStruct{
+	t := struct {
+		X *String `json:"x,omitempty"`
+		Y string  `json:"y,omitempty"`
+	}{
 		X: ptr,
 		Y: s.Y,
 	}
-}
-
-type omitStringInStruct struct {
-	X *String `json:"x,omitempty"`
-	Y string  `json:"y,omitempty"`
+	return json.Marshal(t)
 }
 
 func TestUnmarshalStringField(t *testing.T) {
@@ -110,7 +109,7 @@ func TestMarshal(t *testing.T) {
 	}
 
 	s4 := stringInStruct{Y: "hello"}
-	b4, err := json.Marshal(s4.Omit())
+	b4, err := json.Marshal(s4)
 	if err != nil {
 		t.Error(err)
 	}
