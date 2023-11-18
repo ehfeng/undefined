@@ -56,7 +56,7 @@ func TestUnmarshalStringField(t *testing.T) {
 	if !s2.X.Valid {
 		t.Errorf("Expected X to be valid")
 	}
-	if s2.X.String != "" {
+	if s2.X.String.String != "" {
 		t.Errorf("Expected X to be empty string")
 	}
 

@@ -9,6 +9,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+
+	"gopkg.in/guregu/null.v4"
 )
 
 // nullBytes is a JSON null literal
@@ -18,7 +20,7 @@ var nullBytes = []byte("null")
 // It will marshal to null if null. Blank string input will be considered null.
 type String struct {
 	Defined bool
-	sql.NullString
+	null.String
 }
 
 // StringFrom creates a new String that will never be blank.
@@ -39,16 +41,18 @@ func (s String) ValueOrZero() string {
 	if !s.Valid {
 		return ""
 	}
-	return s.String
+	return s.String.String
 }
 
 // NewString creates a new String
 func NewString(s string, valid bool) String {
 	return String{
 		Defined: true,
-		NullString: sql.NullString{
-			String: s,
-			Valid:  valid,
+		String: null.String{
+			NullString: sql.NullString{
+				String: s,
+				Valid:  valid,
+			},
 		},
 	}
 }
@@ -70,52 +74,12 @@ func (s *String) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalJSON implements json.Marshaler.
-// It will encode null if this String is null.
-func (s String) MarshalJSON() ([]byte, error) {
-	if !s.Valid {
-		return []byte("null"), nil
-	}
-	return json.Marshal(s.String)
-}
-
-// MarshalText implements encoding.TextMarshaler.
-// It will encode a blank string when this String is null.
-func (s String) MarshalText() ([]byte, error) {
-	if !s.Valid {
-		return []byte{}, nil
-	}
-	return []byte(s.String), nil
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-// It will unmarshal to a null String if the input is a blank string.
-func (s *String) UnmarshalText(text []byte) error {
-	s.String = string(text)
-	s.Valid = s.String != ""
-	return nil
-}
-
-// SetValid changes this String's value and also sets it to be non-null.
-func (s *String) SetValid(v string) {
-	s.String = v
-	s.Valid = true
-}
-
-// Ptr returns a pointer to this String's value, or a nil pointer if this String is null.
-func (s String) Ptr() *string {
-	if !s.Valid {
-		return nil
-	}
-	return &s.String
-}
-
 // IsZero returns true for null strings, for potential future omitempty support.
 func (s String) IsZero() bool {
-	return !s.Valid
+	return !s.Defined
 }
 
 // Equal returns true if both strings have the same value or are both null.
 func (s String) Equal(other String) bool {
-	return s.Valid == other.Valid && (!s.Valid || s.String == other.String)
+	return s.Defined == other.Defined && s.Valid == other.Valid && (!s.Valid || s.String == other.String)
 }

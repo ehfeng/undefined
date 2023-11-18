@@ -1,10 +1,8 @@
 # undefined
 
-This kind of sucks.
+`null.String` lets us more easily distinguish between zero and null JSON values, but doesn't distinguish betweeen null and undefined fields. Leaving out a field can be significant though, especially with [JSON SET](https://www.ehfeng.com/json-set/).
 
-`null.String` lets us more easily distinguish between zero and null JSON values, but doesn't distinguish betweeen null and undefined fields. Leaving out a field can be significant though, especially as I've defined in [JSON SET](https://www.ehfeng.com/json-set/).
-
-`omitempty` [won't work](https://github.com/golang/go/issues/11939) for marshalling custom types but will hopefully be included in the v2 of [json marshalling](https://github.com/golang/go/discussions/63397).
+This is only useful for unmarshalling json.  `omitempty` [won't work](https://github.com/golang/go/issues/11939) for marshalling structs but will hopefully be included in the v2 of [json marshalling](https://github.com/golang/go/discussions/63397). To marshal `undefined.String` fields, you need to implement `MarshalJSON` on your struct (see below).
 
 > "omitempty" option was narrowly defined as only omitting a field if it is a Go false, 0, a nil pointer, a nil interface value, and any empty array, slice, map, or string.
 
@@ -17,29 +15,26 @@ import (
 )
 
 type A struct {
-    X string           `json:"x,omitempty"`
-    Y null.String      `json:"y,omitempty"`
-    Z undefined.String `json:"z,omitempty"`
+    X string           `json:"x"`
+    Y null.String      `json:"y"`
+    Z undefined.String `json:"z"`
 }
 
-func (a *A) B() B {
+func (a A) MarshalJSON() ([]byte, error) {
+    // otherwise, Z will be marshalled as `null`, even when undefined
     var ptr *undefined.String
     if a.Z.Defined {
         ptr = &a.Z
     }
-    return B{
+    return struct{
+        X string            `json:"x"`
+        Y null.String       `json:"y"`
+        Z *undefined.String `json:"z,omitempty"`
+    }{
         X: a.X,
         Y: a.Y,
         Z: p,
     }
-}
-
-// this secondary struct must be used for _marshalling_ because 
-// golang json only tests against native zero values for omitempty
-type B struct {
-    X string
-    Y null.String
-    Z *undefined.String `json:"z,omitempty"`
 }
 
 func main() {
